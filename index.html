@@ -366,6 +366,16 @@ input[type=text]::placeholder{color:var(--muted);}
   <div class="panel" id="panelEncode">
     <div class="field-grid">
       <div class="field">
+        <label>Model</label>
+        <select id="encModel" onchange="onModelChange()">
+          <option value="">— select —</option>
+          <option value="A">UX700-4G-A</option>
+          <option value="B">UX700-4G-B</option>
+          <option value="E">UX700-4G-E</option>
+          <option value="F">UX700-4G-F</option>
+        </select>
+      </div>
+      <div class="field">
         <label>Region</label>
         <select id="encRegion" onchange="encodeRun()">
           <option value="">— select —</option>
@@ -384,7 +394,7 @@ input[type=text]::placeholder{color:var(--muted);}
       </div>
       <div class="field">
         <label>OS</label>
-        <select id="encOs" onchange="encodeRun()">
+        <select id="encOs" onchange="onEsimOsChange()">
           <option value="">— select —</option>
           <option value="Android">Android</option>
           <option value="Linux">Linux</option>
@@ -392,7 +402,7 @@ input[type=text]::placeholder{color:var(--muted);}
       </div>
       <div class="field">
         <label>eSIM</label>
-        <select id="encEsim" onchange="encodeRun()">
+        <select id="encEsim" onchange="onEsimOsChange()">
           <option value="">— select —</option>
           <option value=".02">.02</option>
           <option value=".32">.32</option>
@@ -708,6 +718,45 @@ function comboModel(c){
   return 'F';
 }
 
+// Model <-> (eSIM, OS) is a two-way binding: picking one side fills the other.
+const MODEL_TO_ESIM_OS = {
+  A: {esim:'.02', os:'Android'},
+  B: {esim:'.32', os:'Android'},
+  E: {esim:'.02', os:'Linux'},
+  F: {esim:'.32', os:'Linux'},
+};
+function esimOsToModel(esim, os){
+  for(const model in MODEL_TO_ESIM_OS){
+    const m = MODEL_TO_ESIM_OS[model];
+    if(m.esim === esim && m.os === os) return model;
+  }
+  return null;
+}
+
+let syncingModelFields = false;
+
+function onModelChange(){
+  const model = document.getElementById('encModel').value;
+  syncingModelFields = true;
+  const map = MODEL_TO_ESIM_OS[model];
+  document.getElementById('encEsim').value = map ? map.esim : '';
+  document.getElementById('encOs').value = map ? map.os : '';
+  syncingModelFields = false;
+  encodeRun();
+}
+
+function onEsimOsChange(){
+  if(!syncingModelFields){
+    const esim = document.getElementById('encEsim').value;
+    const os = document.getElementById('encOs').value;
+    const model = (esim && os) ? esimOsToModel(esim, os) : '';
+    syncingModelFields = true;
+    document.getElementById('encModel').value = model || '';
+    syncingModelFields = false;
+  }
+  encodeRun();
+}
+
 function renderMatchTable(matches){
   document.getElementById('matchTotal').textContent = ALL_ENCODE_COMBOS.length;
   document.getElementById('matchCount').textContent = matches.length;
@@ -736,6 +785,7 @@ function renderMatchTable(matches){
 }
 
 function encodeRun(){
+  const model = document.getElementById('encModel').value;
   const filters = {
     region: document.getElementById('encRegion').value,
     housing: document.getElementById('encHousing').value,
@@ -747,6 +797,7 @@ function encodeRun(){
 
   const matches = ALL_ENCODE_COMBOS.filter(c=>
     Object.keys(filters).every(k => !filters[k] || filters[k] === c[k])
+    && (!model || comboModel(c) === model)
   );
   renderMatchTable(matches);
 
