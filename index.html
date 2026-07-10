@@ -89,6 +89,7 @@ h1{
   color:var(--muted);
   margin-bottom:6px;
 }
+.field label.mixed-case{text-transform:none;}
 .field select{
   width:100%;
   background:var(--panel-2);
@@ -366,7 +367,7 @@ input[type=text]::placeholder{color:var(--muted);}
   <div class="panel" id="panelEncode">
     <div class="field-grid">
       <div class="field">
-        <label>Model</label>
+        <label>Model Name</label>
         <select id="encModel" onchange="onModelChange()">
           <option value="">— select —</option>
           <option value="A">UX700-4G-A</option>
@@ -376,20 +377,38 @@ input[type=text]::placeholder{color:var(--muted);}
         </select>
       </div>
       <div class="field">
-        <label>Region</label>
-        <select id="encRegion" onchange="encodeRun()">
+        <label>Country Code</label>
+        <select id="encCountryCode" onchange="onCountryCodeChange()">
           <option value="">— select —</option>
-          <option value="EU">EU</option>
-          <option value="US">US</option>
-          <option value="UK">UK</option>
+          <option value="EUA">EUA</option>
+          <option value="EUB">EUB</option>
+          <option value="EUC">EUC</option>
+          <option value="NAA">NAA</option>
+          <option value="NAB">NAB</option>
         </select>
       </div>
       <div class="field">
-        <label>Housing</label>
-        <select id="encHousing" onchange="encodeRun()">
+        <label>Radio Module</label>
+        <select id="encRadioModule" onchange="onCountryPartsChange()">
+          <option value="">— select —</option>
+          <option value="NA">NA</option>
+          <option value="EM">EM</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <select id="encColor" onchange="onCountryPartsChange()">
           <option value="">— select —</option>
           <option value="Light">Light</option>
           <option value="Dark">Dark</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Navigator Stencil</label>
+        <select id="encStencil" onchange="onCountryPartsChange()">
+          <option value="">— select —</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
         </select>
       </div>
       <div class="field">
@@ -401,7 +420,7 @@ input[type=text]::placeholder{color:var(--muted);}
         </select>
       </div>
       <div class="field">
-        <label>eSIM</label>
+        <label class="mixed-case">eSIM</label>
         <select id="encEsim" onchange="onEsimOsChange()">
           <option value="">— select —</option>
           <option value=".02">.02</option>
@@ -417,10 +436,10 @@ input[type=text]::placeholder{color:var(--muted);}
         </select>
       </div>
       <div class="field">
-        <label>Rev</label>
+        <label>HW Revision</label>
         <select id="encRev" onchange="encodeRun()">
-          <option value="A">Rev A</option>
-          <option value="B">Rev B</option>
+          <option value="A">Old</option>
+          <option value="B">New</option>
         </select>
       </div>
     </div>
@@ -435,9 +454,8 @@ input[type=text]::placeholder{color:var(--muted);}
           <thead>
             <tr>
               <th>P/N</th>
-              <th>Model</th>
-              <th>Region</th>
-              <th>Housing</th>
+              <th>Model Name</th>
+              <th>Country Code</th>
               <th>OS</th>
               <th>eSIM</th>
               <th>Interface</th>
@@ -469,7 +487,7 @@ input[type=text]::placeholder{color:var(--muted);}
         <div class="card">
           <p class="card-title">HW Config</p>
           <div class="kv"><span class="k">Region desc</span><span class="v" id="encOutRegionDesc">—</span></div>
-          <div class="kv"><span class="k">Housing</span><span class="v" id="encOutHousing">—</span></div>
+          <div class="kv"><span class="k">Color</span><span class="v" id="encOutHousing">—</span></div>
         </div>
       </div>
       <div class="desc-card">
@@ -500,11 +518,11 @@ function copyText(id){
 }
 
 const COUNTRY_MAP = {
-  EUA: {region:'EU', housing:'Light', ukFlags:false},
-  EUB: {region:'EU', housing:'Dark',  ukFlags:false},
-  EUC: {region:'UK', housing:'Light', ukFlags:true},
-  NAA: {region:'US', housing:'Light', ukFlags:false},
-  NAB: {region:'US', housing:'Dark',  ukFlags:false},
+  EUA: {radioModule:'EM', color:'Light', stencil:'No'},
+  EUB: {radioModule:'EM', color:'Dark',  stencil:'No'},
+  EUC: {radioModule:'EM', color:'Light', stencil:'Yes'},
+  NAA: {radioModule:'NA', color:'Light', stencil:'No'},
+  NAB: {radioModule:'NA', color:'Dark',  stencil:'No'},
 };
 
 const ESIM_IFACE_MAP = {
@@ -514,16 +532,19 @@ const ESIM_IFACE_MAP = {
   '7': {esim:'.32', iface:'RS485'},
 };
 
-// Shared: given os/esim/iface/region/housing, compute model/description/hwid + warnings
-function buildFromParams(os, esim, iface, region, housing, rev){
+// Shared: given os/esim/iface/radioModule/color/stencil, compute model/description/hwid + warnings
+function buildFromParams(os, esim, iface, radioModule, color, stencil, rev){
   const warnings = [];
-  const ukFlags = region === 'UK';
+  const hasStencilFlag = stencil === 'Yes';
 
-  if(region === 'UK' && housing === 'Dark'){
-    warnings.push('UK + Dark Mode has not been defined yet (no letter code exists) — treating as Dark for description/HWID purposes only.');
+  if(hasStencilFlag && color === 'Dark'){
+    warnings.push('Navigator Stencil + Dark Color has not been defined yet (no letter code exists) — treating as Dark for description/HWID purposes only.');
   }
-  if(region === 'UK' && iface === 'RS485'){
-    warnings.push('RS485 + UK combination has not been confirmed to exist as a real SKU.');
+  if(radioModule === 'NA' && hasStencilFlag){
+    warnings.push('Radio Module NA + Navigator Stencil has never been defined — no country code exists for this combination.');
+  }
+  if(radioModule === 'EM' && hasStencilFlag && iface === 'RS485'){
+    warnings.push('RS485 + Navigator Stencil (EM) combination has not been confirmed to exist as a real SKU.');
   }
 
   let model = null;
@@ -532,9 +553,9 @@ function buildFromParams(os, esim, iface, region, housing, rev){
   else if(esim === '.02' && os === 'Linux') model = 'E';
   else if(esim === '.32' && os === 'Linux') model = 'F';
 
-  const regionDesc = region === 'US' ? 'NA 4G' : 'EM 4G';
-  const hasStencil = ukFlags;
-  const hasPTID = ukFlags;
+  const regionDesc = radioModule === 'NA' ? 'NA 4G' : 'EM 4G';
+  const hasStencil = hasStencilFlag;
+  const hasPTID = hasStencilFlag;
 
   const descParts = [];
   descParts.push(`UX700-4G-${model || '?'}`);
@@ -544,7 +565,7 @@ function buildFromParams(os, esim, iface, region, housing, rev){
   descParts.push('DB WIF AC/BT/ETH/USB/MDB');
   if(hasPTID) descParts.push('PTID');
   descParts.push('NO PSU');
-  if(housing === 'Dark') descParts.push('DARK');
+  if(color === 'Dark') descParts.push('DARK');
   descParts.push(esim === '.32' ? 'ESIM32' : 'ESIM');
   descParts.push('5/2MP CAM');
   descParts.push('2GB/32GB');
@@ -554,7 +575,7 @@ function buildFromParams(os, esim, iface, region, housing, rev){
   let seg3 = '07D2';
   if(iface === 'RS485') seg3 = '1' + seg3.slice(1);
   let seg4 = '030';
-  if(housing === 'Dark') seg4 = seg4.slice(0,2) + 'D';
+  if(color === 'Dark') seg4 = seg4.slice(0,2) + 'D';
   let seg5 = '00C';
   if(hasStencil) seg5 = seg5.slice(0,2) + 'E';
   const revSuffix = rev === 'A' ? 'A0' : 'A1';
@@ -625,7 +646,7 @@ function decodeRun(){
   const os = osDigit === '5' ? 'Android' : osDigit === '4' ? 'Linux' : null;
   if(!os) parseWarnings.push(`OS digit "${osDigit||'?'}" not recognized (expected 5=Android, 4=Linux).`);
   const hasPTIDfromPN = osDigits[2] === '1';
-  if(hasPTIDfromPN !== countryInfo.ukFlags) parseWarnings.push(`PTID digit ("${osDigits[2]}") doesn't match country code expectation for ${countryCode}.`);
+  if(hasPTIDfromPN !== (countryInfo.stencil === 'Yes')) parseWarnings.push(`PTID digit ("${osDigits[2]}") doesn't match country code expectation for ${countryCode}.`);
 
   const cDigits = codeSeg.split('');
   if(cDigits.length !== 2) parseWarnings.push(`eSIM/interface/memory segment "${codeSeg}" is not 2 digits as expected — check parsing.`);
@@ -636,16 +657,16 @@ function decodeRun(){
   const esim = esimIface ? esimIface.esim : null;
   const iface = esimIface ? esimIface.iface : null;
 
-  const built = buildFromParams(os, esim, iface, countryInfo.region, countryInfo.housing, currentDecRev);
+  const built = buildFromParams(os, esim, iface, countryInfo.radioModule, countryInfo.color, countryInfo.stencil, currentDecRev);
   const warnings = parseWarnings.concat(built.warnings);
 
   document.getElementById('decOutModel').textContent = built.model ? `UX700-4G-${built.model}` : 'Undefined';
   document.getElementById('decOutEsim').textContent = esim || '—';
   document.getElementById('decOutOs').textContent = os || '—';
-  document.getElementById('decOutRegion').textContent = countryInfo.region;
+  document.getElementById('decOutRegion').textContent = countryInfo.radioModule === 'NA' ? 'US' : (countryInfo.stencil === 'Yes' ? 'UK' : 'EU');
   const housingEl = document.getElementById('decOutHousing');
-  housingEl.textContent = countryInfo.housing;
-  housingEl.className = 'v' + (countryInfo.housing==='Dark' ? ' dark' : '');
+  housingEl.textContent = countryInfo.color;
+  housingEl.className = 'v' + (countryInfo.color==='Dark' ? ' dark' : '');
   document.getElementById('decOutIface').textContent = iface || '—';
   document.getElementById('decOutPtid').textContent = (built.hasPTID || built.hasStencil) ? 'PTID + STENCIL' : 'None';
   document.getElementById('decOutDesc').textContent = built.description;
@@ -664,25 +685,46 @@ function decodeRun(){
 document.getElementById('pnInput').addEventListener('input', decodeRun);
 
 // ---------- ENCODE ----------
+// Country Code <-> (Radio Module, Color, Navigator Stencil) is a two-way binding,
+// same idea as Model <-> (eSIM, OS) below.
+const COUNTRY_CODE_MAP = {
+  EUA: {radioModule:'EM', color:'Light', stencil:'No'},
+  EUB: {radioModule:'EM', color:'Dark',  stencil:'No'},
+  EUC: {radioModule:'EM', color:'Light', stencil:'Yes'},
+  NAA: {radioModule:'NA', color:'Light', stencil:'No'},
+  NAB: {radioModule:'NA', color:'Dark',  stencil:'No'},
+};
+function countryCodeFor(radioModule, color, stencil){
+  for(const code in COUNTRY_CODE_MAP){
+    const m = COUNTRY_CODE_MAP[code];
+    if(m.radioModule === radioModule && m.color === color && m.stencil === stencil) return code;
+  }
+  return null;
+}
+
 const ENCODE_AXES = {
-  region: ['EU','UK','US'],
-  housing: ['Light','Dark'],
+  radioModule: ['EM','NA'],
+  color: ['Light','Dark'],
+  stencil: ['No','Yes'],
   os: ['Android','Linux'],
   esim: ['.02','.32'],
   iface: ['RS232','RS485'],
 };
 
-// All real (or at least nameable) SKU combinations. UK+Dark is excluded — no
-// country code has ever been defined for it, so there's no P/N to show.
+// Only combinations that resolve to an actually-defined country code are offered
+// (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color,
+// have never been assigned a letter code, so they're left out entirely).
 const ALL_ENCODE_COMBOS = (function(){
   const combos = [];
-  ENCODE_AXES.region.forEach(region=>{
-    ENCODE_AXES.housing.forEach(housing=>{
-      if(region === 'UK' && housing === 'Dark') return;
-      ENCODE_AXES.os.forEach(os=>{
-        ENCODE_AXES.esim.forEach(esim=>{
-          ENCODE_AXES.iface.forEach(iface=>{
-            combos.push({region, housing, os, esim, iface});
+  ENCODE_AXES.radioModule.forEach(radioModule=>{
+    ENCODE_AXES.color.forEach(color=>{
+      ENCODE_AXES.stencil.forEach(stencil=>{
+        if(!countryCodeFor(radioModule, color, stencil)) return;
+        ENCODE_AXES.os.forEach(os=>{
+          ENCODE_AXES.esim.forEach(esim=>{
+            ENCODE_AXES.iface.forEach(iface=>{
+              combos.push({radioModule, color, stencil, os, esim, iface});
+            });
           });
         });
       });
@@ -692,13 +734,10 @@ const ALL_ENCODE_COMBOS = (function(){
 })();
 
 function computePnForCombo(c){
-  let country = null;
-  if(c.region === 'EU') country = c.housing === 'Dark' ? 'EUB' : 'EUA';
-  else if(c.region === 'US') country = c.housing === 'Dark' ? 'NAB' : 'NAA';
-  else if(c.region === 'UK') country = 'EUC';
+  const country = countryCodeFor(c.radioModule, c.color, c.stencil);
 
   const osDigit = c.os === 'Android' ? '5' : '4';
-  const ptidDigit = c.region === 'UK' ? '1' : '0';
+  const ptidDigit = c.stencil === 'Yes' ? '1' : '0';
   const osSeg = '7' + osDigit + ptidDigit;
 
   let ceDigit = null;
@@ -757,26 +796,52 @@ function onEsimOsChange(){
   encodeRun();
 }
 
+let syncingCountryFields = false;
+
+function onCountryCodeChange(){
+  const code = document.getElementById('encCountryCode').value;
+  const map = COUNTRY_CODE_MAP[code];
+  syncingCountryFields = true;
+  document.getElementById('encRadioModule').value = map ? map.radioModule : '';
+  document.getElementById('encColor').value = map ? map.color : '';
+  document.getElementById('encStencil').value = map ? map.stencil : '';
+  syncingCountryFields = false;
+  encodeRun();
+}
+
+function onCountryPartsChange(){
+  if(!syncingCountryFields){
+    const radioModule = document.getElementById('encRadioModule').value;
+    const color = document.getElementById('encColor').value;
+    const stencil = document.getElementById('encStencil').value;
+    const code = (radioModule && color && stencil) ? countryCodeFor(radioModule, color, stencil) : null;
+    syncingCountryFields = true;
+    document.getElementById('encCountryCode').value = code || '';
+    syncingCountryFields = false;
+  }
+  encodeRun();
+}
+
 function renderMatchTable(matches){
   document.getElementById('matchTotal').textContent = ALL_ENCODE_COMBOS.length;
   document.getElementById('matchCount').textContent = matches.length;
   const body = document.getElementById('matchTableBody');
 
   if(!matches.length){
-    body.innerHTML = '<tr><td colspan="7" class="match-empty">No matching SKU — that combination (e.g. UK + Dark) isn\'t defined.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="match-empty">No matching SKU — that combination isn\'t defined (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color).</td></tr>';
     return;
   }
 
   const only = matches.length === 1;
   body.innerHTML = matches.map(c=>{
     const pn = computePnForCombo(c);
-    const flagged = c.region === 'UK' && c.iface === 'RS485';
+    const code = countryCodeFor(c.radioModule, c.color, c.stencil);
+    const flagged = c.stencil === 'Yes' && c.radioModule === 'EM' && c.iface === 'RS485';
     const rowClass = [flagged ? 'flagged-row' : '', only ? 'only-row' : ''].filter(Boolean).join(' ');
     return `<tr class="${rowClass}">
       <td class="mono">${pn}</td>
       <td>UX700-4G-${comboModel(c)}</td>
-      <td>${c.region}</td>
-      <td>${c.housing}</td>
+      <td>${code}</td>
       <td>${c.os}</td>
       <td>${c.esim}</td>
       <td>${c.iface}${flagged ? '<span class="flag-dot" title="Not confirmed to exist as a real SKU">!</span>' : ''}</td>
@@ -786,9 +851,11 @@ function renderMatchTable(matches){
 
 function encodeRun(){
   const model = document.getElementById('encModel').value;
+  const countryCode = document.getElementById('encCountryCode').value;
   const filters = {
-    region: document.getElementById('encRegion').value,
-    housing: document.getElementById('encHousing').value,
+    radioModule: document.getElementById('encRadioModule').value,
+    color: document.getElementById('encColor').value,
+    stencil: document.getElementById('encStencil').value,
     os: document.getElementById('encOs').value,
     esim: document.getElementById('encEsim').value,
     iface: document.getElementById('encIface').value,
@@ -798,6 +865,7 @@ function encodeRun(){
   const matches = ALL_ENCODE_COMBOS.filter(c=>
     Object.keys(filters).every(k => !filters[k] || filters[k] === c[k])
     && (!model || comboModel(c) === model)
+    && (!countryCode || countryCodeFor(c.radioModule, c.color, c.stencil) === countryCode)
   );
   renderMatchTable(matches);
 
@@ -808,7 +876,7 @@ function encodeRun(){
   }
 
   const only = matches[0];
-  const built = buildFromParams(only.os, only.esim, only.iface, only.region, only.housing, rev);
+  const built = buildFromParams(only.os, only.esim, only.iface, only.radioModule, only.color, only.stencil, rev);
   const warnings = built.warnings.slice();
   const pn = computePnForCombo(only);
 
@@ -817,8 +885,8 @@ function encodeRun(){
   document.getElementById('encOutPtid').textContent = (built.hasPTID || built.hasStencil) ? 'PTID + STENCIL' : 'None';
   document.getElementById('encOutRegionDesc').textContent = built.regionDesc;
   const hEl = document.getElementById('encOutHousing');
-  hEl.textContent = only.housing;
-  hEl.className = 'v' + (only.housing==='Dark' ? ' dark' : '');
+  hEl.textContent = only.color;
+  hEl.className = 'v' + (only.color==='Dark' ? ' dark' : '');
   document.getElementById('encOutDesc').textContent = built.description;
   document.getElementById('encOutHwid').textContent = built.hwid;
 
