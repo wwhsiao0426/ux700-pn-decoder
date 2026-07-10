@@ -292,7 +292,13 @@ input[type=text]::placeholder{color:var(--muted);}
   color:var(--muted);
   padding:6px 8px;
   border-bottom:1px solid var(--line);
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
 }
+.match-table th:hover{color:var(--amber);}
+.match-table th.sorted{color:var(--teal);}
+.sort-arrow{display:inline-block;margin-left:4px;color:var(--teal);font-size:9px;}
 .match-table td{
   padding:6px 8px;
   border-bottom:1px solid var(--line);
@@ -455,15 +461,15 @@ input[type=text]::placeholder{color:var(--muted);}
         <table class="match-table">
           <thead>
             <tr>
-              <th>P/N</th>
-              <th>Model Name</th>
-              <th>Radio Module</th>
-              <th>Color</th>
-              <th>Navigator Stencil</th>
-              <th>OS</th>
-              <th>eSIM</th>
-              <th>Interface</th>
-              <th>Security HWID</th>
+              <th data-key="pn" onclick="onSortClick('pn')">P/N<span class="sort-arrow"></span></th>
+              <th data-key="model" onclick="onSortClick('model')">Model Name<span class="sort-arrow"></span></th>
+              <th data-key="radioModule" onclick="onSortClick('radioModule')">Radio Module<span class="sort-arrow"></span></th>
+              <th data-key="color" onclick="onSortClick('color')">Color<span class="sort-arrow"></span></th>
+              <th data-key="stencil" onclick="onSortClick('stencil')">Navigator Stencil<span class="sort-arrow"></span></th>
+              <th data-key="os" onclick="onSortClick('os')">OS<span class="sort-arrow"></span></th>
+              <th data-key="esim" onclick="onSortClick('esim')">eSIM<span class="sort-arrow"></span></th>
+              <th data-key="iface" onclick="onSortClick('iface')">Interface<span class="sort-arrow"></span></th>
+              <th data-key="hwid" onclick="onSortClick('hwid')">Security HWID<span class="sort-arrow"></span></th>
             </tr>
           </thead>
           <tbody id="matchTableBody"></tbody>
@@ -839,19 +845,73 @@ function computeHwidHtml(iface, color, stencil, rev){
   return ['U605', '0007', seg3, seg4, seg5, seg6].join('-');
 }
 
+function computeHwidPlain(iface, color, stencil, rev){
+  const seg3 = (iface === 'RS485') ? '17D2' : '07D2';
+  const seg4 = (color === 'Dark') ? '03D' : '030';
+  const seg5 = (stencil === 'Yes') ? '00E' : '00C';
+  const seg6 = (rev === 'B') ? 'A1' : 'A0';
+  return ['U605', '0007', seg3, seg4, seg5, seg6].join('-');
+}
+
+// Click a column header to sort the match table by that column; click again to reverse.
+let matchSort = {key: null, dir: 1};
+
+function onSortClick(key){
+  if(matchSort.key === key){
+    matchSort.dir *= -1;
+  } else {
+    matchSort.key = key;
+    matchSort.dir = 1;
+  }
+  encodeRun();
+}
+
+function sortMatches(matches, rev){
+  if(!matchSort.key) return matches;
+  const keyFns = {
+    pn: c => computePnForCombo(c),
+    model: c => comboModel(c),
+    radioModule: c => c.radioModule,
+    color: c => c.color,
+    stencil: c => c.stencil,
+    os: c => c.os,
+    esim: c => c.esim,
+    iface: c => c.iface,
+    hwid: c => computeHwidPlain(c.iface, c.color, c.stencil, rev),
+  };
+  const keyFn = keyFns[matchSort.key];
+  return matches.slice().sort((a, b)=>{
+    const av = keyFn(a), bv = keyFn(b);
+    if(av < bv) return -matchSort.dir;
+    if(av > bv) return matchSort.dir;
+    return 0;
+  });
+}
+
+function updateSortHeaders(){
+  document.querySelectorAll('.match-table th[data-key]').forEach(th=>{
+    const arrow = th.querySelector('.sort-arrow');
+    const active = th.dataset.key === matchSort.key;
+    th.classList.toggle('sorted', active);
+    arrow.textContent = active ? (matchSort.dir === 1 ? '▲' : '▼') : '';
+  });
+}
+
 function renderMatchTable(matches){
   document.getElementById('matchTotal').textContent = ALL_ENCODE_COMBOS.length;
   document.getElementById('matchCount').textContent = matches.length;
   const body = document.getElementById('matchTableBody');
   const rev = document.getElementById('encRev').value;
+  updateSortHeaders();
 
   if(!matches.length){
     body.innerHTML = '<tr><td colspan="9" class="match-empty">No matching SKU — that combination isn\'t defined (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color).</td></tr>';
     return;
   }
 
-  const only = matches.length === 1;
-  body.innerHTML = matches.map(c=>{
+  const sorted = sortMatches(matches, rev);
+  const only = sorted.length === 1;
+  body.innerHTML = sorted.map(c=>{
     const pn = computePnForCombo(c);
     const hwid = computeHwidHtml(c.iface, c.color, c.stencil, rev);
     const flagged = c.stencil === 'Yes' && c.radioModule === 'EM' && c.iface === 'RS485';
