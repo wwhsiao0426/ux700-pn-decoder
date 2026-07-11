@@ -332,7 +332,7 @@ input[type=text]::placeholder{color:var(--muted);}
         <button id="decRevB" onclick="setDecRev('B')">Rev B</button>
       </div>
     </div>
-    <p class="hint">Rev A/B isn't encoded in the P/N — select it manually. Country code segment must match <code>EUA</code>, <code>EUB</code>, <code>EUC</code>, <code>NAA</code>, or <code>NAB</code>.</p>
+    <p class="hint">Rev A/B isn't encoded in the P/N — select it manually. Country code segment must match <code>EUA</code>, <code>EUB</code>, <code>EUC</code>, <code>EUL</code>, <code>NAA</code>, or <code>NAB</code>.</p>
 
     <div class="trace" id="trace"></div>
     <div id="errorBox"></div>
@@ -390,6 +390,7 @@ input[type=text]::placeholder{color:var(--muted);}
           <option value="EUA">EUA</option>
           <option value="EUB">EUB</option>
           <option value="EUC">EUC</option>
+          <option value="EUL">EUL</option>
           <option value="NAA">NAA</option>
           <option value="NAB">NAB</option>
         </select>
@@ -436,7 +437,7 @@ input[type=text]::placeholder{color:var(--muted);}
       </div>
       <div class="field">
         <label>Interface</label>
-        <select id="encIface" onchange="encodeRun()">
+        <select id="encIface" onchange="onCountryPartsChange()">
           <option value="">— select —</option>
           <option value="RS232">RS232</option>
           <option value="RS485">RS485</option>
@@ -532,6 +533,7 @@ const COUNTRY_MAP = {
   EUA: {radioModule:'EM', color:'Light', stencil:'No'},
   EUB: {radioModule:'EM', color:'Dark',  stencil:'No'},
   EUC: {radioModule:'EM', color:'Light', stencil:'Yes'},
+  EUL: {radioModule:'EM', color:'Dark',  stencil:'No'},
   NAA: {radioModule:'NA', color:'Light', stencil:'No'},
   NAB: {radioModule:'NA', color:'Dark',  stencil:'No'},
 };
@@ -630,11 +632,11 @@ function decodeRun(){
   }
 
   const tokens = raw.split('-');
-  const countryIdx = tokens.findIndex(t=>/^(EU[ABC]|NA[AB])$/.test(t));
+  const countryIdx = tokens.findIndex(t=>/^(EU[ABCL]|NA[AB])$/.test(t));
   renderTrace(tokens, countryIdx);
 
   if(countryIdx === -1){
-    errorBox.innerHTML = '<div class="error">No recognized country/region code found (expected EUA / EUB / EUC / NAA / NAB).</div>';
+    errorBox.innerHTML = '<div class="error">No recognized country/region code found (expected EUA / EUB / EUC / EUL / NAA / NAB).</div>';
     results.classList.remove('show');
     return;
   }
@@ -667,6 +669,9 @@ function decodeRun(){
 
   const esim = esimIface ? esimIface.esim : null;
   const iface = esimIface ? esimIface.iface : null;
+  if(countryCode === 'EUL' && iface && iface !== 'RS485'){
+    parseWarnings.push('Country code EUL is defined specifically for RS485 — decoded interface doesn\'t match.');
+  }
 
   const built = buildFromParams(os, esim, iface, countryInfo.radioModule, countryInfo.color, countryInfo.stencil, currentDecRev);
   const warnings = parseWarnings.concat(built.warnings);
@@ -697,20 +702,29 @@ document.getElementById('pnInput').addEventListener('input', decodeRun);
 
 // ---------- ENCODE ----------
 // Country Code <-> (Radio Module, Color, Navigator Stencil) is a two-way binding,
-// same idea as Model <-> (eSIM, OS) below.
+// same idea as Model <-> (eSIM, OS) below. EUL is a special case: same underlying
+// Radio Module/Color/Stencil triple as EUB, but it's the code actually used when
+// Interface = RS485 for that triple — EUB stays the code for RS232.
 const COUNTRY_CODE_MAP = {
   EUA: {radioModule:'EM', color:'Light', stencil:'No'},
   EUB: {radioModule:'EM', color:'Dark',  stencil:'No'},
   EUC: {radioModule:'EM', color:'Light', stencil:'Yes'},
+  EUL: {radioModule:'EM', color:'Dark',  stencil:'No', iface:'RS485'},
   NAA: {radioModule:'NA', color:'Light', stencil:'No'},
   NAB: {radioModule:'NA', color:'Dark',  stencil:'No'},
 };
-function countryCodeFor(radioModule, color, stencil){
+function countryCodeFor(radioModule, color, stencil, iface){
+  let fallback = null;
   for(const code in COUNTRY_CODE_MAP){
     const m = COUNTRY_CODE_MAP[code];
-    if(m.radioModule === radioModule && m.color === color && m.stencil === stencil) return code;
+    if(m.radioModule !== radioModule || m.color !== color || m.stencil !== stencil) continue;
+    if(m.iface){
+      if(m.iface === iface) return code; // more specific match wins outright
+    } else {
+      fallback = code;
+    }
   }
-  return null;
+  return fallback;
 }
 
 const ENCODE_AXES = {
@@ -745,7 +759,7 @@ const ALL_ENCODE_COMBOS = (function(){
 })();
 
 function computePnForCombo(c){
-  const country = countryCodeFor(c.radioModule, c.color, c.stencil);
+  const country = countryCodeFor(c.radioModule, c.color, c.stencil, c.iface);
 
   const osDigit = c.os === 'Android' ? '5' : '4';
   const ptidDigit = c.stencil === 'Yes' ? '1' : '0';
@@ -817,6 +831,10 @@ function onCountryCodeChange(){
   document.getElementById('encColor').value = map ? map.color : '';
   document.getElementById('encStencil').value = map ? map.stencil : '';
   syncingCountryFields = false;
+  // EUL only exists for RS485 — picking it pins the Interface field too.
+  if(map && map.iface){
+    document.getElementById('encIface').value = map.iface;
+  }
   encodeRun();
 }
 
@@ -825,7 +843,8 @@ function onCountryPartsChange(){
     const radioModule = document.getElementById('encRadioModule').value;
     const color = document.getElementById('encColor').value;
     const stencil = document.getElementById('encStencil').value;
-    const code = (radioModule && color && stencil) ? countryCodeFor(radioModule, color, stencil) : null;
+    const iface = document.getElementById('encIface').value;
+    const code = (radioModule && color && stencil) ? countryCodeFor(radioModule, color, stencil, iface) : null;
     syncingCountryFields = true;
     document.getElementById('encCountryCode').value = code || '';
     syncingCountryFields = false;
@@ -946,7 +965,7 @@ function encodeRun(){
   const matches = ALL_ENCODE_COMBOS.filter(c=>
     Object.keys(filters).every(k => !filters[k] || filters[k] === c[k])
     && (!model || comboModel(c) === model)
-    && (!countryCode || countryCodeFor(c.radioModule, c.color, c.stencil) === countryCode)
+    && (!countryCode || countryCodeFor(c.radioModule, c.color, c.stencil, c.iface) === countryCode)
   );
   renderMatchTable(matches);
 
