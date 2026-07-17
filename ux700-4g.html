@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UX700-4G P/N Decoder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#161a23;
+  --panel:#1f2531;
+  --panel-2:#252c3a;
+  --line:#333c4d;
+  --text:#e7eaf1;
+  --muted:#8b94a7;
+  --amber:#e8a33d;
+  --teal:#4fd1c5;
+  --red:#e2574c;
+  --mono:'IBM Plex Mono', monospace;
+  --sans:'Inter', sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  padding:32px 20px 60px;
+}
+.wrap{max-width:920px;margin:0 auto;}
+h1{
+  font-family:var(--mono);
+  font-size:19px;
+  font-weight:600;
+  letter-spacing:0.02em;
+  margin:0 0 4px;
+  color:var(--text);
+}
+.sub{
+  color:var(--muted);
+  font-size:13px;
+  margin:0 0 20px;
+}
+.tabs{
+  display:flex;
+  gap:4px;
+  margin-bottom:26px;
+  border-bottom:1px solid var(--line);
+}
+.tab-btn{
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-family:var(--mono);
+  font-size:13px;
+  letter-spacing:0.03em;
+  padding:10px 4px;
+  margin-right:22px;
+  cursor:pointer;
+  position:relative;
+  top:1px;
+}
+.tab-btn.active{
+  color:var(--amber);
+  border-bottom:2px solid var(--amber);
+}
+.panel{display:none;}
+.panel.active{display:block;}
+
+.field-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+  margin-bottom:20px;
+}
+@media (max-width:640px){.field-grid{grid-template-columns:1fr 1fr;}}
+.field{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:10px 12px;
+}
+.field label{
+  display:block;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.field label.mixed-case{text-transform:none;}
+.field select{
+  width:100%;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:14px;
+  padding:8px 10px;
+  border-radius:5px;
+  outline:none;
+}
+.field select:focus{border-color:var(--amber);}
+
+.input-row{
+  display:flex;
+  gap:10px;
+  margin-bottom:8px;
+  flex-wrap:wrap;
+}
+input[type=text]{
+  flex:1;
+  min-width:220px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:16px;
+  letter-spacing:0.03em;
+  padding:12px 14px;
+  border-radius:6px;
+  outline:none;
+}
+input[type=text]:focus{border-color:var(--amber);}
+input[type=text]::placeholder{color:var(--muted);}
+.rev-toggle{
+  display:flex;
+  border:1px solid var(--line);
+  border-radius:6px;
+  overflow:hidden;
+}
+.rev-toggle button{
+  background:var(--panel);
+  color:var(--muted);
+  border:none;
+  font-family:var(--mono);
+  font-size:13px;
+  padding:0 16px;
+  cursor:pointer;
+}
+.rev-toggle button.active{
+  background:var(--amber);
+  color:#1a1200;
+  font-weight:600;
+}
+.hint{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:26px;
+}
+.hint code{color:var(--teal);font-family:var(--mono);}
+
+.trace{
+  position:relative;
+  margin:6px 0 30px;
+  min-height:10px;
+}
+.trace-string{
+  font-family:var(--mono);
+  font-size:20px;
+  letter-spacing:0.04em;
+  display:flex;
+  flex-wrap:wrap;
+  gap:2px;
+  margin-bottom:2px;
+}
+.seg{
+  padding:3px 6px;
+  border-radius:4px;
+  background:var(--panel-2);
+}
+.seg.tagged{background:rgba(232,163,61,0.14);color:var(--amber);}
+.seg-dash{color:var(--muted);padding:3px 0;}
+
+.results{display:none;}
+.results.show{display:block;}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:14px;
+}
+@media (max-width:640px){.grid{grid-template-columns:1fr;}}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:16px 18px;
+}
+.card-title{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:0 0 10px;
+}
+.kv{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid var(--line);}
+.kv:last-child{border-bottom:none;}
+.kv .k{color:var(--muted);}
+.kv .v{font-family:var(--mono);color:var(--text);text-align:right;}
+.kv .v.dark{color:var(--amber);}
+
+.desc-card, .hwid-card, .pn-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:16px 18px;
+  margin-bottom:14px;
+}
+.desc-string, .hwid-string, .pn-string{
+  font-family:var(--mono);
+  font-size:15px;
+  line-height:1.6;
+  color:var(--teal);
+  word-break:break-word;
+}
+.hwid-string{color:var(--amber);font-size:17px;}
+.pn-string{color:var(--text);font-size:19px;font-weight:600;}
+.copy-btn{
+  margin-top:10px;
+  background:none;
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-family:var(--sans);
+  font-size:12px;
+  padding:5px 10px;
+  border-radius:5px;
+  cursor:pointer;
+}
+.copy-btn:hover{border-color:var(--teal);color:var(--teal);}
+
+.warnings{
+  background:rgba(226,87,76,0.08);
+  border:1px solid rgba(226,87,76,0.35);
+  border-radius:8px;
+  padding:14px 18px;
+  margin-bottom:14px;
+}
+.warnings-title{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--red);
+  margin:0 0 8px;
+}
+.warnings ul{margin:0;padding-left:18px;font-size:13px;color:var(--text);}
+.warnings li{margin-bottom:4px;}
+
+.error{
+  color:var(--red);
+  font-size:13px;
+  font-family:var(--mono);
+  margin-top:6px;
+}
+
+.match-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:14px 16px 0;
+  margin-bottom:14px;
+}
+.match-card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:10px;
+}
+.match-count{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.match-count b{color:var(--teal);font-size:13px;}
+.match-scroll{max-height:320px;overflow-y:auto;overflow-x:auto;margin:0 -16px;padding:0 16px 12px;}
+.match-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.match-table th{
+  position:sticky;top:0;
+  background:var(--panel-2);
+  text-align:left;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:6px 8px;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+}
+.match-table th:hover{color:var(--amber);}
+.match-table th.sorted{color:var(--teal);}
+.sort-arrow{display:inline-block;margin-left:4px;color:var(--teal);font-size:9px;}
+.match-table td{
+  padding:6px 8px;
+  border-bottom:1px solid var(--line);
+  color:var(--text);
+  white-space:nowrap;
+}
+.match-table td.mono{font-family:var(--mono);color:var(--amber);}
+.hwid-diff{color:var(--red);font-weight:700;}
+.match-table tr.flagged-row td{background:rgba(226,87,76,0.07);}
+.match-table tr.only-row td{background:rgba(79,209,197,0.1);}
+.flag-dot{color:var(--red);font-weight:700;margin-left:3px;}
+.match-empty{color:var(--muted);text-align:center;padding:16px 0;font-size:13px;}
+.home-link{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--muted);
+  text-decoration:none;
+  margin-bottom:14px;
+}
+.home-link:hover{color:var(--amber);}
+
+.ref-pn{
+  font-family:var(--mono);
+  font-size:17px;
+  color:var(--text);
+  font-weight:600;
+}
+.ref-segment{margin-bottom:22px;}
+.ref-segment-title{
+  font-family:var(--mono);
+  font-size:14px;
+  color:var(--text);
+  margin:0 0 8px;
+}
+.ref-segment-title b{color:var(--amber);}
+.ref-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+.ref-table td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+.ref-table tr:last-child td{border-bottom:none;}
+.ref-table td.ref-code{font-family:var(--mono);color:var(--teal);width:56px;font-weight:600;}
+.ref-table tr.ref-current td.ref-code{color:var(--amber);}
+.ref-table tr.ref-current{background:rgba(232,163,61,0.08);}
+.ref-highlight{color:var(--amber);font-weight:700;}
+.ref-note{font-size:12px;color:var(--muted);margin:8px 0 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home-link" href="index.html">&larr; All products</a>
+  <h1>UX700-4G P/N Decoder</h1>
+  <p class="sub">Decode a Part Number, or build one from a spec.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabDecodeBtn" onclick="switchTab('decode')">DECODE</button>
+    <button class="tab-btn" id="tabEncodeBtn" onclick="switchTab('encode')">ENCODE</button>
+    <button class="tab-btn" id="tabReferenceBtn" onclick="switchTab('reference')">REFERENCE</button>
+  </div>
+
+  <!-- DECODE PANEL -->
+  <div class="panel active" id="panelDecode">
+    <div class="input-row">
+      <input type="text" id="pnInput" placeholder="e.g. M187-750-42-EUA-6" autocomplete="off" spellcheck="false">
+      <div class="rev-toggle">
+        <button id="decRevA" class="active" onclick="setDecRev('A')">Rev A</button>
+        <button id="decRevB" onclick="setDecRev('B')">Rev B</button>
+      </div>
+    </div>
+    <p class="hint">Rev A/B isn't encoded in the P/N — select it manually. Country code segment must match <code>EUA</code>, <code>EUB</code>, <code>EUC</code>, <code>EUL</code>, <code>NAA</code>, or <code>NAB</code>.</p>
+
+    <div class="trace" id="trace"></div>
+    <div id="errorBox"></div>
+
+    <div class="results" id="decResults">
+      <div class="warnings" id="decWarningsBox" style="display:none;">
+        <p class="warnings-title">Unconfirmed / flagged</p>
+        <ul id="decWarningsList"></ul>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <p class="card-title">Model Name</p>
+          <div class="kv"><span class="k">Model</span><span class="v" id="decOutModel">—</span></div>
+          <div class="kv"><span class="k">eSIM</span><span class="v" id="decOutEsim">—</span></div>
+          <div class="kv"><span class="k">SW</span><span class="v" id="decOutOs">—</span></div>
+        </div>
+        <div class="card">
+          <p class="card-title">HW Config</p>
+          <div class="kv"><span class="k">Region</span><span class="v" id="decOutRegion">—</span></div>
+          <div class="kv"><span class="k">Housing</span><span class="v" id="decOutHousing">—</span></div>
+          <div class="kv"><span class="k">Interface</span><span class="v" id="decOutIface">—</span></div>
+          <div class="kv"><span class="k">PTID / Stencil</span><span class="v" id="decOutPtid">—</span></div>
+        </div>
+      </div>
+      <div class="desc-card">
+        <p class="card-title">Description</p>
+        <div class="desc-string" id="decOutDesc">—</div>
+        <button class="copy-btn" onclick="copyText('decOutDesc')">Copy</button>
+      </div>
+      <div class="hwid-card">
+        <p class="card-title">Security HW ID</p>
+        <div class="hwid-string" id="decOutHwid">—</div>
+        <button class="copy-btn" onclick="copyText('decOutHwid')">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENCODE PANEL -->
+  <div class="panel" id="panelEncode">
+    <div class="field-grid">
+      <div class="field">
+        <label>Model Name</label>
+        <select id="encModel" onchange="onModelChange()">
+          <option value="">— select —</option>
+          <option value="A">UX700-4G-A</option>
+          <option value="B">UX700-4G-B</option>
+          <option value="E">UX700-4G-E</option>
+          <option value="F">UX700-4G-F</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Country Code</label>
+        <select id="encCountryCode" onchange="onCountryCodeChange()">
+          <option value="">— select —</option>
+          <option value="EUA">EUA</option>
+          <option value="EUB">EUB</option>
+          <option value="EUC">EUC</option>
+          <option value="EUL">EUL</option>
+          <option value="NAA">NAA</option>
+          <option value="NAB">NAB</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Radio Module</label>
+        <select id="encRadioModule" onchange="onCountryPartsChange()">
+          <option value="">— select —</option>
+          <option value="NA">NA</option>
+          <option value="EM">EM</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <select id="encColor" onchange="onCountryPartsChange()">
+          <option value="">— select —</option>
+          <option value="Light">Light</option>
+          <option value="Dark">Dark</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Navigator Stencil</label>
+        <select id="encStencil" onchange="onCountryPartsChange()">
+          <option value="">— select —</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>OS</label>
+        <select id="encOs" onchange="onEsimOsChange()">
+          <option value="">— select —</option>
+          <option value="Android">Android</option>
+          <option value="Linux">Linux</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="mixed-case">eSIM</label>
+        <select id="encEsim" onchange="onEsimOsChange()">
+          <option value="">— select —</option>
+          <option value=".02">.02</option>
+          <option value=".32">.32</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Interface</label>
+        <select id="encIface" onchange="onCountryPartsChange()">
+          <option value="">— select —</option>
+          <option value="RS232">RS232</option>
+          <option value="RS485">RS485</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>HW Revision</label>
+        <select id="encRev" onchange="encodeRun()">
+          <option value="">— select —</option>
+          <option value="A">Rev A - Old Display</option>
+          <option value="B">Rev B - New Display</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="match-card">
+      <div class="match-card-header">
+        <p class="card-title" style="margin:0;">Matching Part Numbers</p>
+        <span class="match-count"><b id="matchCount">0</b> / <span id="matchTotal">0</span></span>
+      </div>
+      <div class="match-scroll">
+        <table class="match-table">
+          <thead>
+            <tr>
+              <th data-key="pn" onclick="onSortClick('pn')">P/N<span class="sort-arrow"></span></th>
+              <th data-key="model" onclick="onSortClick('model')">Model Name<span class="sort-arrow"></span></th>
+              <th data-key="radioModule" onclick="onSortClick('radioModule')">Radio Module<span class="sort-arrow"></span></th>
+              <th data-key="color" onclick="onSortClick('color')">Color<span class="sort-arrow"></span></th>
+              <th data-key="stencil" onclick="onSortClick('stencil')">Navigator Stencil<span class="sort-arrow"></span></th>
+              <th data-key="os" onclick="onSortClick('os')">OS<span class="sort-arrow"></span></th>
+              <th data-key="esim" onclick="onSortClick('esim')">eSIM<span class="sort-arrow"></span></th>
+              <th data-key="iface" onclick="onSortClick('iface')">Interface<span class="sort-arrow"></span></th>
+              <th data-key="hwid" onclick="onSortClick('hwid')">Security HWID<span class="sort-arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="matchTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="results" id="encResults">
+      <div class="warnings" id="encWarningsBox" style="display:none;">
+        <p class="warnings-title">Unconfirmed / flagged</p>
+        <ul id="encWarningsList"></ul>
+      </div>
+
+      <div class="pn-card">
+        <p class="card-title">Part Number</p>
+        <div class="pn-string" id="encOutPn">—</div>
+        <button class="copy-btn" onclick="copyText('encOutPn')">Copy</button>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <p class="card-title">Model Name</p>
+          <div class="kv"><span class="k">Model</span><span class="v" id="encOutModel">—</span></div>
+          <div class="kv"><span class="k">PTID / Stencil</span><span class="v" id="encOutPtid">—</span></div>
+        </div>
+        <div class="card">
+          <p class="card-title">HW Config</p>
+          <div class="kv"><span class="k">Region desc</span><span class="v" id="encOutRegionDesc">—</span></div>
+          <div class="kv"><span class="k">Color</span><span class="v" id="encOutHousing">—</span></div>
+        </div>
+      </div>
+      <div class="desc-card">
+        <p class="card-title">Description</p>
+        <div class="desc-string" id="encOutDesc">—</div>
+        <button class="copy-btn" onclick="copyText('encOutDesc')">Copy</button>
+      </div>
+      <div class="hwid-card">
+        <p class="card-title">Security HW ID</p>
+        <div class="hwid-string" id="encOutHwid">—</div>
+        <button class="copy-btn" onclick="copyText('encOutHwid')">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REFERENCE PANEL -->
+  <div class="panel" id="panelReference">
+    <p class="card-title" style="margin:0 0 4px;">UX700 M-Level Part Number Options</p>
+    <p class="ref-pn" style="margin:0 0 20px;">M187-def-gh-xnn-o</p>
+
+    <div class="ref-segment">
+      <p class="ref-segment-title"><b>d</b> = Major NEO Hardware Revision</p>
+      <table class="ref-table">
+        <tr><td class="ref-code">0</td><td>Multi-Lane</td></tr>
+        <tr><td class="ref-code">1</td><td>PINpad</td></tr>
+        <tr><td class="ref-code">2</td><td>Countertop</td></tr>
+        <tr><td class="ref-code">3</td><td>Portable</td></tr>
+        <tr><td class="ref-code">4</td><td>Mobile</td></tr>
+        <tr><td class="ref-code">5</td><td>Petro</td></tr>
+        <tr class="ref-current"><td class="ref-code">7</td><td class="ref-highlight">Unattended</td></tr>
+      </table>
+    </div>
+
+    <div class="ref-segment">
+      <p class="ref-segment-title"><b>e</b> = Application Processor, Wireless Features, Operating System</p>
+      <table class="ref-table">
+        <tr><td class="ref-code">0</td><td>QCS2290, DB WiFi 802.11ac, BT 5.0, VOS3</td></tr>
+        <tr><td class="ref-code">1</td><td>QCS2290, DB WiFi 802.11ac, BT 5.0, AVOS</td></tr>
+        <tr><td class="ref-code">2</td><td>reserved</td></tr>
+        <tr><td class="ref-code">3</td><td>reserved</td></tr>
+        <tr class="ref-current"><td class="ref-code">4</td><td class="ref-highlight">QCM2290, EM or NA, 4G LTE, DB WiFi 802.11ac, BT 5.0, VOS3</td></tr>
+        <tr class="ref-current"><td class="ref-code">5</td><td class="ref-highlight">QCM2290, EM or NA, 4G LTE, DB WiFi 802.11ac, BT 5.0, VAOS</td></tr>
+      </table>
+    </div>
+
+    <div class="ref-segment">
+      <p class="ref-segment-title"><b>f</b> = Payment Options</p>
+      <table class="ref-table">
+        <tr class="ref-current"><td class="ref-code">0</td><td class="ref-highlight">EMV, CLTS, PSCR, MSR</td></tr>
+        <tr class="ref-current"><td class="ref-code">1</td><td class="ref-highlight">EMV, CLTS, PSCR, MSR, PTID</td></tr>
+      </table>
+    </div>
+
+    <div class="ref-segment">
+      <p class="ref-segment-title"><b>g</b> = Hardware Options</p>
+      <table class="ref-table">
+        <tr><td class="ref-code">2</td><td>UWB, 2MP FF Camera, 5MP FF Camera, Optical Sensor, USB-C, x3 SAM Slots</td></tr>
+        <tr><td class="ref-code">3</td><td>2MP FF Camera, 5MP FF Camera, Optical Sensor, USB-C, x3 SAM Slots</td></tr>
+        <tr><td class="ref-code">4</td><td>2MP FF Camera, 5MP FF Camera, Optical Sensor, USB-C, eSIM, SIM/SAM slot, x2 SAM slots</td></tr>
+        <tr><td class="ref-code">5</td><td>2MP FF Camera, 5MP FF Camera, Optical Sensor, USB-C, eSIM32, SIM/SAM slot, x2 SAM slots</td></tr>
+        <tr><td class="ref-code">6</td><td>2MP FF Camera, 5MP FF Camera, Optical Sensor, USB-C, eSIM, SIM/SAM slot, x2 SAM slots, <span class="ref-highlight">RS485</span></td></tr>
+        <tr><td class="ref-code">7</td><td>2MP FF Camera, 5MP FF Camera, Optical Sensor, USB-C, eSIM32, SIM/SAM slot, x2 SAM slots, <span class="ref-highlight">RS485</span></td></tr>
+        <tr><td class="ref-code">8</td><td>2MP FF Camera, Optical Sensor, USB-C, eSIM32, SIM/SAM slot, x2 SAM slots</td></tr>
+        <tr><td class="ref-code">9</td><td>2MP FF Camera, Optical Sensor, USB-C, eSIM32, SIM/SAM slot, x2 SAM slots, RS485</td></tr>
+      </table>
+    </div>
+
+    <div class="ref-segment">
+      <p class="ref-segment-title"><b>h</b> = Memory Options</p>
+      <table class="ref-table">
+        <tr><td class="ref-code">1</td><td>1GB DDR / 16GB Flash</td></tr>
+        <tr class="ref-current"><td class="ref-code">2</td><td class="ref-highlight">2GB DDR / 32GB Flash</td></tr>
+        <tr><td class="ref-code">3</td><td>3GB DDR / 32GB Flash</td></tr>
+      </table>
+    </div>
+
+    <div class="ref-segment">
+      <p class="ref-segment-title"><b>xxn</b> = Country code and localization</p>
+      <table class="ref-table">
+        <tr><td colspan="2">Includes customization for color and branding</td></tr>
+        <tr><td colspan="2">Includes customization for eSIM carrier configuration</td></tr>
+      </table>
+      <p class="ref-note">This is the segment the DECODE / ENCODE tabs work with, in more detail (Radio Module, Color, Navigator Stencil).</p>
+    </div>
+
+    <p class="ref-note">Amber-highlighted rows are the values this decoder currently covers (UX700-4G-A, Unattended). Other rows document the full UX700 M-Level part number scheme for reference.</p>
+  </div>
+</div>
+
+<script>
+function switchTab(tab){
+  document.getElementById('panelDecode').classList.toggle('active', tab==='decode');
+  document.getElementById('panelEncode').classList.toggle('active', tab==='encode');
+  document.getElementById('panelReference').classList.toggle('active', tab==='reference');
+  document.getElementById('tabDecodeBtn').classList.toggle('active', tab==='decode');
+  document.getElementById('tabEncodeBtn').classList.toggle('active', tab==='encode');
+  document.getElementById('tabReferenceBtn').classList.toggle('active', tab==='reference');
+}
+
+function copyText(id){
+  const t = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(t);
+}
+
+const COUNTRY_MAP = {
+  EUA: {radioModule:'EM', color:'Light', stencil:'No'},
+  EUB: {radioModule:'EM', color:'Dark',  stencil:'No'},
+  EUC: {radioModule:'EM', color:'Light', stencil:'Yes'},
+  EUL: {radioModule:'EM', color:'Dark',  stencil:'No'},
+  NAA: {radioModule:'NA', color:'Light', stencil:'No'},
+  NAB: {radioModule:'NA', color:'Dark',  stencil:'No'},
+};
+
+const ESIM_IFACE_MAP = {
+  '4': {esim:'.02', iface:'RS232'},
+  '5': {esim:'.32', iface:'RS232'},
+  '6': {esim:'.02', iface:'RS485'},
+  '7': {esim:'.32', iface:'RS485'},
+};
+
+// Shared: given os/esim/iface/radioModule/color/stencil, compute model/description/hwid + warnings
+function buildFromParams(os, esim, iface, radioModule, color, stencil, rev){
+  const warnings = [];
+  const hasStencilFlag = stencil === 'Yes';
+
+  if(hasStencilFlag && color === 'Dark'){
+    warnings.push('Navigator Stencil + Dark Color has not been defined yet (no letter code exists) — treating as Dark for description/HWID purposes only.');
+  }
+  if(radioModule === 'NA' && hasStencilFlag){
+    warnings.push('Radio Module NA + Navigator Stencil has never been defined — no country code exists for this combination.');
+  }
+  if(radioModule === 'EM' && hasStencilFlag && iface === 'RS485'){
+    warnings.push('RS485 + Navigator Stencil (EM) combination has not been confirmed to exist as a real SKU.');
+  }
+
+  let model = null;
+  if(esim === '.02' && os === 'Android') model = 'A';
+  else if(esim === '.32' && os === 'Android') model = 'B';
+  else if(esim === '.02' && os === 'Linux') model = 'E';
+  else if(esim === '.32' && os === 'Linux') model = 'F';
+
+  const regionDesc = radioModule === 'NA' ? 'NA 4G' : 'EM 4G';
+  const hasStencil = hasStencilFlag;
+  const hasPTID = hasStencilFlag;
+
+  const descParts = [];
+  descParts.push(`UX700-4G-${model || '?'}`);
+  if(hasStencil) descParts.push('STENCIL');
+  descParts.push(regionDesc);
+  descParts.push(os === 'Android' ? 'ANDROID' : os === 'Linux' ? 'ENGAGE' : '?');
+  descParts.push('DB WIF AC/BT/ETH/USB/MDB');
+  if(hasPTID) descParts.push('PTID');
+  descParts.push('NO PSU');
+  if(color === 'Dark') descParts.push('DARK');
+  descParts.push(esim === '.32' ? 'ESIM32' : 'ESIM');
+  descParts.push('5/2MP CAM');
+  descParts.push('2GB/32GB');
+  descParts.push(iface === 'RS485' ? 'RS485' : 'PCI 6');
+  const description = descParts.join(', ');
+
+  let seg3 = '07D2';
+  if(iface === 'RS485') seg3 = '1' + seg3.slice(1);
+  let seg4 = '030';
+  if(color === 'Dark') seg4 = seg4.slice(0,2) + 'D';
+  let seg5 = '00C';
+  if(hasStencil) seg5 = seg5.slice(0,2) + 'E';
+  const revSuffix = rev === 'B' ? 'A1' : 'A0';
+  const hwid = ['U605','0007',seg3,seg4,seg5,revSuffix].join('-');
+
+  return {model, description, hwid, warnings, hasPTID, hasStencil, regionDesc};
+}
+
+// ---------- DECODE ----------
+let currentDecRev = 'A';
+function setDecRev(rev){
+  currentDecRev = rev;
+  document.getElementById('decRevA').classList.toggle('active', rev==='A');
+  document.getElementById('decRevB').classList.toggle('active', rev==='B');
+  decodeRun();
+}
+
+function renderTrace(tokens, countryIdx){
+  const trace = document.getElementById('trace');
+  if(!tokens.length){ trace.innerHTML=''; return; }
+  let html = '<div class="trace-string">';
+  tokens.forEach((tok, i)=>{
+    const tagged = (i===countryIdx || i===countryIdx-1 || i===countryIdx-2);
+    html += `<span class="seg ${tagged?'tagged':''}">${tok}</span>`;
+    if(i < tokens.length-1) html += '<span class="seg-dash">-</span>';
+  });
+  html += '</div>';
+  trace.innerHTML = html;
+}
+
+function decodeRun(){
+  const raw = document.getElementById('pnInput').value.trim().toUpperCase();
+  const results = document.getElementById('decResults');
+  const errorBox = document.getElementById('errorBox');
+  errorBox.innerHTML = '';
+
+  if(!raw){
+    results.classList.remove('show');
+    renderTrace([], -1);
+    return;
+  }
+
+  const tokens = raw.split('-');
+  const countryIdx = tokens.findIndex(t=>/^(EU[ABCL]|NA[AB])$/.test(t));
+  renderTrace(tokens, countryIdx);
+
+  if(countryIdx === -1){
+    errorBox.innerHTML = '<div class="error">No recognized country/region code found (expected EUA / EUB / EUC / EUL / NAA / NAB).</div>';
+    results.classList.remove('show');
+    return;
+  }
+
+  const countryCode = tokens[countryIdx];
+  const codeSeg = tokens[countryIdx-1] || '';
+  const osSeg = tokens[countryIdx-2] || '';
+  const trailing = tokens[countryIdx+1];
+  const parseWarnings = [];
+  if(trailing !== undefined && trailing !== '6'){
+    parseWarnings.push(`Trailing segment "${trailing}" isn't the usual "6" — always fixed regardless of RS232/RS485, so this is unexpected.`);
+  }
+
+  const countryInfo = COUNTRY_MAP[countryCode];
+
+  const osDigits = osSeg.split('');
+  if(osDigits.length !== 3) parseWarnings.push(`OS/PTID segment "${osSeg}" is not 3 digits as expected — check parsing.`);
+  if(osDigits[0] !== '7') parseWarnings.push(`Unattended digit is "${osDigits[0]||'?'}", expected "7" for UX700-A.`);
+  const osDigit = osDigits[1];
+  const os = osDigit === '5' ? 'Android' : osDigit === '4' ? 'Linux' : null;
+  if(!os) parseWarnings.push(`OS digit "${osDigit||'?'}" not recognized (expected 5=Android, 4=Linux).`);
+  const hasPTIDfromPN = osDigits[2] === '1';
+  if(hasPTIDfromPN !== (countryInfo.stencil === 'Yes')) parseWarnings.push(`PTID digit ("${osDigits[2]}") doesn't match country code expectation for ${countryCode}.`);
+
+  const cDigits = codeSeg.split('');
+  if(cDigits.length !== 2) parseWarnings.push(`eSIM/interface/memory segment "${codeSeg}" is not 2 digits as expected — check parsing.`);
+  const esimIface = ESIM_IFACE_MAP[cDigits[0]];
+  if(!esimIface) parseWarnings.push(`eSIM/interface digit "${cDigits[0]||'?'}" not recognized (expected 4/5/6/7).`);
+  if(cDigits[1] !== '2') parseWarnings.push(`Memory digit "${cDigits[1]||'?'}" isn't the usual "2" (2GB/32GB) — meaning unconfirmed.`);
+
+  const esim = esimIface ? esimIface.esim : null;
+  const iface = esimIface ? esimIface.iface : null;
+  if(countryCode === 'EUL' && iface && iface !== 'RS485'){
+    parseWarnings.push('Country code EUL is defined specifically for RS485 — decoded interface doesn\'t match.');
+  }
+
+  const built = buildFromParams(os, esim, iface, countryInfo.radioModule, countryInfo.color, countryInfo.stencil, currentDecRev);
+  const warnings = parseWarnings.concat(built.warnings);
+
+  document.getElementById('decOutModel').textContent = built.model ? `UX700-4G-${built.model}` : 'Undefined';
+  document.getElementById('decOutEsim').textContent = esim || '—';
+  document.getElementById('decOutOs').textContent = os || '—';
+  document.getElementById('decOutRegion').textContent = countryInfo.radioModule === 'NA' ? 'US' : (countryInfo.stencil === 'Yes' ? 'UK' : 'EU');
+  const housingEl = document.getElementById('decOutHousing');
+  housingEl.textContent = countryInfo.color;
+  housingEl.className = 'v' + (countryInfo.color==='Dark' ? ' dark' : '');
+  document.getElementById('decOutIface').textContent = iface || '—';
+  document.getElementById('decOutPtid').textContent = (built.hasPTID || built.hasStencil) ? 'PTID + STENCIL' : 'None';
+  document.getElementById('decOutDesc').textContent = built.description;
+  document.getElementById('decOutHwid').textContent = built.hwid;
+
+  const warningsBox = document.getElementById('decWarningsBox');
+  const warningsList = document.getElementById('decWarningsList');
+  if(warnings.length){
+    warningsList.innerHTML = warnings.map(w=>`<li>${w}</li>`).join('');
+    warningsBox.style.display = 'block';
+  } else {
+    warningsBox.style.display = 'none';
+  }
+  results.classList.add('show');
+}
+document.getElementById('pnInput').addEventListener('input', decodeRun);
+
+// ---------- ENCODE ----------
+// Country Code <-> (Radio Module, Color, Navigator Stencil) is a two-way binding,
+// same idea as Model <-> (eSIM, OS) below. EUL is a special case: same underlying
+// Radio Module/Color/Stencil triple as EUB, but it's the code actually used when
+// Interface = RS485 for that triple — EUB stays the code for RS232.
+const COUNTRY_CODE_MAP = {
+  EUA: {radioModule:'EM', color:'Light', stencil:'No'},
+  EUB: {radioModule:'EM', color:'Dark',  stencil:'No'},
+  EUC: {radioModule:'EM', color:'Light', stencil:'Yes'},
+  EUL: {radioModule:'EM', color:'Dark',  stencil:'No', iface:'RS485'},
+  NAA: {radioModule:'NA', color:'Light', stencil:'No'},
+  NAB: {radioModule:'NA', color:'Dark',  stencil:'No'},
+};
+function countryCodeFor(radioModule, color, stencil, iface){
+  let fallback = null;
+  for(const code in COUNTRY_CODE_MAP){
+    const m = COUNTRY_CODE_MAP[code];
+    if(m.radioModule !== radioModule || m.color !== color || m.stencil !== stencil) continue;
+    if(m.iface){
+      if(m.iface === iface) return code; // more specific match wins outright
+    } else {
+      fallback = code;
+    }
+  }
+  return fallback;
+}
+
+const ENCODE_AXES = {
+  radioModule: ['EM','NA'],
+  color: ['Light','Dark'],
+  stencil: ['No','Yes'],
+  os: ['Android','Linux'],
+  esim: ['.02','.32'],
+  iface: ['RS232','RS485'],
+};
+
+// Only combinations that resolve to an actually-defined country code are offered
+// (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color,
+// have never been assigned a letter code, so they're left out entirely).
+const ALL_ENCODE_COMBOS = (function(){
+  const combos = [];
+  ENCODE_AXES.radioModule.forEach(radioModule=>{
+    ENCODE_AXES.color.forEach(color=>{
+      ENCODE_AXES.stencil.forEach(stencil=>{
+        if(!countryCodeFor(radioModule, color, stencil)) return;
+        ENCODE_AXES.os.forEach(os=>{
+          ENCODE_AXES.esim.forEach(esim=>{
+            ENCODE_AXES.iface.forEach(iface=>{
+              combos.push({radioModule, color, stencil, os, esim, iface});
+            });
+          });
+        });
+      });
+    });
+  });
+  return combos;
+})();
+
+function computePnForCombo(c){
+  const country = countryCodeFor(c.radioModule, c.color, c.stencil, c.iface);
+
+  const osDigit = c.os === 'Android' ? '5' : '4';
+  const ptidDigit = c.stencil === 'Yes' ? '1' : '0';
+  const osSeg = '7' + osDigit + ptidDigit;
+
+  let ceDigit = null;
+  if(c.esim === '.02' && c.iface === 'RS232') ceDigit = '4';
+  else if(c.esim === '.32' && c.iface === 'RS232') ceDigit = '5';
+  else if(c.esim === '.02' && c.iface === 'RS485') ceDigit = '6';
+  else if(c.esim === '.32' && c.iface === 'RS485') ceDigit = '7';
+  const codeSeg = ceDigit + '2';
+
+  return `M187-${osSeg}-${codeSeg}-${country}-6`;
+}
+
+function comboModel(c){
+  if(c.esim === '.02' && c.os === 'Android') return 'A';
+  if(c.esim === '.32' && c.os === 'Android') return 'B';
+  if(c.esim === '.02' && c.os === 'Linux') return 'E';
+  return 'F';
+}
+
+// Model <-> (eSIM, OS) is a two-way binding: picking one side fills the other.
+const MODEL_TO_ESIM_OS = {
+  A: {esim:'.02', os:'Android'},
+  B: {esim:'.32', os:'Android'},
+  E: {esim:'.02', os:'Linux'},
+  F: {esim:'.32', os:'Linux'},
+};
+function esimOsToModel(esim, os){
+  for(const model in MODEL_TO_ESIM_OS){
+    const m = MODEL_TO_ESIM_OS[model];
+    if(m.esim === esim && m.os === os) return model;
+  }
+  return null;
+}
+
+let syncingModelFields = false;
+
+function onModelChange(){
+  const model = document.getElementById('encModel').value;
+  syncingModelFields = true;
+  const map = MODEL_TO_ESIM_OS[model];
+  document.getElementById('encEsim').value = map ? map.esim : '';
+  document.getElementById('encOs').value = map ? map.os : '';
+  syncingModelFields = false;
+  encodeRun();
+}
+
+function onEsimOsChange(){
+  if(!syncingModelFields){
+    const esim = document.getElementById('encEsim').value;
+    const os = document.getElementById('encOs').value;
+    const model = (esim && os) ? esimOsToModel(esim, os) : '';
+    syncingModelFields = true;
+    document.getElementById('encModel').value = model || '';
+    syncingModelFields = false;
+  }
+  encodeRun();
+}
+
+let syncingCountryFields = false;
+
+function onCountryCodeChange(){
+  const code = document.getElementById('encCountryCode').value;
+  const map = COUNTRY_CODE_MAP[code];
+  syncingCountryFields = true;
+  document.getElementById('encRadioModule').value = map ? map.radioModule : '';
+  document.getElementById('encColor').value = map ? map.color : '';
+  document.getElementById('encStencil').value = map ? map.stencil : '';
+  syncingCountryFields = false;
+  // EUL only exists for RS485 — picking it pins the Interface field too.
+  if(map && map.iface){
+    document.getElementById('encIface').value = map.iface;
+  }
+  encodeRun();
+}
+
+function onCountryPartsChange(){
+  if(!syncingCountryFields){
+    const radioModule = document.getElementById('encRadioModule').value;
+    const color = document.getElementById('encColor').value;
+    const stencil = document.getElementById('encStencil').value;
+    const iface = document.getElementById('encIface').value;
+    const code = (radioModule && color && stencil) ? countryCodeFor(radioModule, color, stencil, iface) : null;
+    syncingCountryFields = true;
+    document.getElementById('encCountryCode').value = code || '';
+    syncingCountryFields = false;
+  }
+  encodeRun();
+}
+
+// Builds the Security HWID for a table row, wrapping whichever single digit
+// differs from the U605-0007-07D2-030-00C-A0 base in <span class="hwid-diff">
+// so it's obvious at a glance which field drove which change.
+function computeHwidHtml(iface, color, stencil, rev){
+  const mark = ch => `<span class="hwid-diff">${ch}</span>`;
+  const seg3 = (iface === 'RS485') ? (mark('1') + '7D2') : '07D2';
+  const seg4 = (color === 'Dark') ? ('03' + mark('D')) : '030';
+  const seg5 = (stencil === 'Yes') ? ('00' + mark('E')) : '00C';
+  const seg6 = (rev === 'B') ? ('A' + mark('1')) : 'A0';
+  return ['U605', '0007', seg3, seg4, seg5, seg6].join('-');
+}
+
+function computeHwidPlain(iface, color, stencil, rev){
+  const seg3 = (iface === 'RS485') ? '17D2' : '07D2';
+  const seg4 = (color === 'Dark') ? '03D' : '030';
+  const seg5 = (stencil === 'Yes') ? '00E' : '00C';
+  const seg6 = (rev === 'B') ? 'A1' : 'A0';
+  return ['U605', '0007', seg3, seg4, seg5, seg6].join('-');
+}
+
+// Click a column header to sort the match table by that column; click again to reverse.
+let matchSort = {key: null, dir: 1};
+
+function onSortClick(key){
+  if(matchSort.key === key){
+    matchSort.dir *= -1;
+  } else {
+    matchSort.key = key;
+    matchSort.dir = 1;
+  }
+  encodeRun();
+}
+
+function sortMatches(matches, rev){
+  if(!matchSort.key) return matches;
+  const keyFns = {
+    pn: c => computePnForCombo(c),
+    model: c => comboModel(c),
+    radioModule: c => c.radioModule,
+    color: c => c.color,
+    stencil: c => c.stencil,
+    os: c => c.os,
+    esim: c => c.esim,
+    iface: c => c.iface,
+    hwid: c => computeHwidPlain(c.iface, c.color, c.stencil, rev),
+  };
+  const keyFn = keyFns[matchSort.key];
+  return matches.slice().sort((a, b)=>{
+    const av = keyFn(a), bv = keyFn(b);
+    if(av < bv) return -matchSort.dir;
+    if(av > bv) return matchSort.dir;
+    return 0;
+  });
+}
+
+function updateSortHeaders(){
+  document.querySelectorAll('.match-table th[data-key]').forEach(th=>{
+    const arrow = th.querySelector('.sort-arrow');
+    const active = th.dataset.key === matchSort.key;
+    th.classList.toggle('sorted', active);
+    arrow.textContent = active ? (matchSort.dir === 1 ? '▲' : '▼') : '';
+  });
+}
+
+function renderMatchTable(matches){
+  document.getElementById('matchTotal').textContent = ALL_ENCODE_COMBOS.length;
+  document.getElementById('matchCount').textContent = matches.length;
+  const body = document.getElementById('matchTableBody');
+  const rev = document.getElementById('encRev').value;
+  updateSortHeaders();
+
+  if(!matches.length){
+    body.innerHTML = '<tr><td colspan="9" class="match-empty">No matching SKU — that combination isn\'t defined (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color).</td></tr>';
+    return;
+  }
+
+  const sorted = sortMatches(matches, rev);
+  const only = sorted.length === 1;
+  body.innerHTML = sorted.map(c=>{
+    const pn = computePnForCombo(c);
+    const hwid = computeHwidHtml(c.iface, c.color, c.stencil, rev);
+    const flagged = c.stencil === 'Yes' && c.radioModule === 'EM' && c.iface === 'RS485';
+    const rowClass = [flagged ? 'flagged-row' : '', only ? 'only-row' : ''].filter(Boolean).join(' ');
+    return `<tr class="${rowClass}">
+      <td class="mono">${pn}</td>
+      <td>UX700-4G-${comboModel(c)}</td>
+      <td>${c.radioModule}</td>
+      <td>${c.color}</td>
+      <td>${c.stencil}</td>
+      <td>${c.os}</td>
+      <td>${c.esim}</td>
+      <td>${c.iface}${flagged ? '<span class="flag-dot" title="Not confirmed to exist as a real SKU">!</span>' : ''}</td>
+      <td class="mono">${hwid}</td>
+    </tr>`;
+  }).join('');
+}
+
+function encodeRun(){
+  const model = document.getElementById('encModel').value;
+  const countryCode = document.getElementById('encCountryCode').value;
+  const filters = {
+    radioModule: document.getElementById('encRadioModule').value,
+    color: document.getElementById('encColor').value,
+    stencil: document.getElementById('encStencil').value,
+    os: document.getElementById('encOs').value,
+    esim: document.getElementById('encEsim').value,
+    iface: document.getElementById('encIface').value,
+  };
+  const rev = document.getElementById('encRev').value;
+
+  const matches = ALL_ENCODE_COMBOS.filter(c=>
+    Object.keys(filters).every(k => !filters[k] || filters[k] === c[k])
+    && (!model || comboModel(c) === model)
+    && (!countryCode || countryCodeFor(c.radioModule, c.color, c.stencil, c.iface) === countryCode)
+  );
+  renderMatchTable(matches);
+
+  const results = document.getElementById('encResults');
+  if(matches.length !== 1){
+    results.classList.remove('show');
+    return;
+  }
+
+  const only = matches[0];
+  const built = buildFromParams(only.os, only.esim, only.iface, only.radioModule, only.color, only.stencil, rev);
+  const warnings = built.warnings.slice();
+  const pn = computePnForCombo(only);
+
+  document.getElementById('encOutPn').textContent = pn;
+  document.getElementById('encOutModel').textContent = built.model ? `UX700-4G-${built.model}` : 'Undefined';
+  document.getElementById('encOutPtid').textContent = (built.hasPTID || built.hasStencil) ? 'PTID + STENCIL' : 'None';
+  document.getElementById('encOutRegionDesc').textContent = built.regionDesc;
+  const hEl = document.getElementById('encOutHousing');
+  hEl.textContent = only.color;
+  hEl.className = 'v' + (only.color==='Dark' ? ' dark' : '');
+  document.getElementById('encOutDesc').textContent = built.description;
+  document.getElementById('encOutHwid').textContent = built.hwid;
+
+  const warningsBox = document.getElementById('encWarningsBox');
+  const warningsList = document.getElementById('encWarningsList');
+  if(warnings.length){
+    warningsList.innerHTML = warnings.map(w=>`<li>${w}</li>`).join('');
+    warningsBox.style.display = 'block';
+  } else {
+    warningsBox.style.display = 'none';
+  }
+  results.classList.add('show');
+}
+encodeRun();
+</script>
+</body>
+</html>
