@@ -57,6 +57,14 @@ h1{
   transition:border-color 0.15s, transform 0.15s;
 }
 .product-card:hover{border-color:var(--amber);transform:translateY(-2px);}
+.product-photo{
+  width:100%;
+  max-width:140px;
+  height:auto;
+  border-radius:8px;
+  margin-bottom:16px;
+  display:block;
+}
 .product-name{
   font-family:var(--mono);
   font-size:16px;
@@ -78,6 +86,7 @@ h1{
 
   <div class="grid">
     <a class="product-card" href="ux700-4g.html">
+      <img class="product-photo" src="images/ux700.jpg" alt="UX700-4G device">
       <p class="product-name">UX700-4G</p>
       <p class="product-desc">Decode / encode P/N, Model Name, Description, and Security HWID for UX700-4G.</p>
     </a>

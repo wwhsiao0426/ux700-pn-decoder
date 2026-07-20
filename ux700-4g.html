@@ -320,6 +320,18 @@ input[type=text]::placeholder{color:var(--muted);}
   margin-bottom:14px;
 }
 .home-link:hover{color:var(--amber);}
+.header-row{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-bottom:20px;
+}
+.header-photo{
+  width:64px;
+  height:auto;
+  border-radius:8px;
+  flex-shrink:0;
+}
 
 .ref-pn{
   font-family:var(--mono);
@@ -348,8 +360,13 @@ input[type=text]::placeholder{color:var(--muted);}
 <body>
 <div class="wrap">
   <a class="home-link" href="index.html">&larr; All products</a>
-  <h1>UX700-4G P/N Decoder</h1>
-  <p class="sub">Decode a Part Number, or build one from a spec.</p>
+  <div class="header-row">
+    <img class="header-photo" src="images/ux700.jpg" alt="UX700-4G device">
+    <div>
+      <h1>UX700-4G P/N Decoder</h1>
+      <p class="sub" style="margin-bottom:0;">Decode a Part Number, or build one from a spec.</p>
+    </div>
+  </div>
 
   <div class="tabs">
     <button class="tab-btn active" id="tabDecodeBtn" onclick="switchTab('decode')">DECODE</button>
