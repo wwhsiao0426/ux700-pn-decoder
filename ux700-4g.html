@@ -1175,8 +1175,9 @@ function applyFormMode(){
   setSelectNA('encEsim', ml);
   setSelectNA('encMemory', ml);
   setSelectNA('encIface', ml);
-  setSelectNA('encStencil', ml);
-  setSelectNA('encPtid', ml);
+  // PTID / Navigator Stencil stay usable even in ML mode (see encodeRun): ML has
+  // no hardware for Radio Module/eSIM/Memory/Interface, but PTID/Stencil are left
+  // as free-standing selectors that simply don't affect whether ML matches.
   setOptionsDisabled('encColor', ['Dark'], ml);   // ML is Light only
   if(ml && getEnc('encColor').value !== 'Light') getEnc('encColor').value = 'Light';
   setOptionsDisabled('encModel', ['A','B','E','F'], ml); // WWA/ML -> only ML models
@@ -1328,8 +1329,11 @@ function encodeRun(){
     if(model && comboModelKey(c) !== model) return false;
     if(countryCode && comboCountry(c) !== countryCode) return false;
     if(c.family === 'ML'){
-      // ML only has OS + Color axes; any 4G-only axis being set excludes ML.
-      if(f.radioModule || f.esim || f.memory || f.iface || f.stencil || f.ptid) return false;
+      // ML only has OS + Color axes. Radio Module/eSIM/Memory/Interface don't
+      // exist on ML hardware, so setting any of those excludes it. PTID and
+      // Navigator Stencil are left selectable but simply don't apply to ML —
+      // picking a value there never hides the ML match.
+      if(f.radioModule || f.esim || f.memory || f.iface) return false;
       if(f.os && f.os !== c.os) return false;
       if(f.color && f.color !== c.color) return false;
       return true;
