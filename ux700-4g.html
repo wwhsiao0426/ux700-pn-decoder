@@ -401,6 +401,7 @@ input[type=text]::placeholder{color:var(--muted);}
           <p class="card-title">Model Name</p>
           <div class="kv"><span class="k">Model</span><span class="v" id="decOutModel">—</span></div>
           <div class="kv"><span class="k">eSIM</span><span class="v" id="decOutEsim">—</span></div>
+          <div class="kv"><span class="k">Memory</span><span class="v" id="decOutMemory">—</span></div>
           <div class="kv"><span class="k">SW</span><span class="v" id="decOutOs">—</span></div>
         </div>
         <div class="card">
@@ -493,6 +494,14 @@ input[type=text]::placeholder{color:var(--muted);}
         </select>
       </div>
       <div class="field">
+        <label>Memory</label>
+        <select id="encMemory" onchange="encodeRun()">
+          <option value="">— select —</option>
+          <option value="1">1GB DDR / 16GB Flash</option>
+          <option value="2">2GB DDR / 32GB Flash</option>
+        </select>
+      </div>
+      <div class="field">
         <label>Interface</label>
         <select id="encIface" onchange="onCountryPartsChange()">
           <option value="">— select —</option>
@@ -526,6 +535,7 @@ input[type=text]::placeholder{color:var(--muted);}
               <th data-key="stencil" onclick="onSortClick('stencil')">Navigator Stencil<span class="sort-arrow"></span></th>
               <th data-key="os" onclick="onSortClick('os')">OS<span class="sort-arrow"></span></th>
               <th data-key="esim" onclick="onSortClick('esim')">eSIM<span class="sort-arrow"></span></th>
+              <th data-key="memory" onclick="onSortClick('memory')">Memory<span class="sort-arrow"></span></th>
               <th data-key="iface" onclick="onSortClick('iface')">Interface<span class="sort-arrow"></span></th>
               <th data-key="hwid" onclick="onSortClick('hwid')">Security HWID<span class="sort-arrow"></span></th>
             </tr>
@@ -627,7 +637,7 @@ input[type=text]::placeholder{color:var(--muted);}
     <div class="ref-segment">
       <p class="ref-segment-title"><b>h</b> = Memory Options</p>
       <table class="ref-table">
-        <tr><td class="ref-code">1</td><td>1GB DDR / 16GB Flash</td></tr>
+        <tr class="ref-current"><td class="ref-code">1</td><td class="ref-highlight">1GB DDR / 16GB Flash</td></tr>
         <tr class="ref-current"><td class="ref-code">2</td><td class="ref-highlight">2GB DDR / 32GB Flash</td></tr>
         <tr><td class="ref-code">3</td><td>3GB DDR / 32GB Flash</td></tr>
       </table>
@@ -707,8 +717,13 @@ function buildMl(mlKey, rev){
   return {mlKey, modelName, pn, hwid, description, os:m.os};
 }
 
-// Shared: given os/esim/iface/radioModule/color/stencil, compute model/description/hwid + warnings
-function buildFromParams(os, esim, iface, radioModule, color, stencil, rev){
+const MEMORY_LABELS = {
+  '1': '1/16GB',
+  '2': '2/32GB',
+};
+
+// Shared: given os/esim/iface/memory/radioModule/color/stencil, compute model/description/hwid + warnings
+function buildFromParams(os, esim, iface, memory, radioModule, color, stencil, rev){
   const warnings = [];
   const hasStencilFlag = stencil === 'Yes';
 
@@ -743,7 +758,7 @@ function buildFromParams(os, esim, iface, radioModule, color, stencil, rev){
   if(color === 'Dark') descParts.push('DARK');
   descParts.push(esim === '.32' ? 'ESIM32' : 'ESIM');
   descParts.push('5/2MP CAM');
-  descParts.push('2/32GB');
+  descParts.push(MEMORY_LABELS[memory] || '2/32GB');
   descParts.push(iface === 'RS485' ? 'RS485' : 'PCI 6');
   const description = descParts.join(', ');
 
@@ -824,6 +839,7 @@ function decodeRun(){
     const builtMl = mlKey ? buildMl(mlKey, currentDecRev) : null;
     document.getElementById('decOutModel').textContent = builtMl ? builtMl.modelName : 'Undefined';
     document.getElementById('decOutEsim').textContent = 'N/A';
+    document.getElementById('decOutMemory').textContent = '2/32GB';
     document.getElementById('decOutOs').textContent = builtMl ? builtMl.os : '—';
     document.getElementById('decOutRegion').textContent = 'WW';
     const housingMl = document.getElementById('decOutHousing');
@@ -861,7 +877,9 @@ function decodeRun(){
   if(cDigits.length !== 2) parseWarnings.push(`eSIM/interface/memory segment "${codeSeg}" is not 2 digits as expected — check parsing.`);
   const esimIface = ESIM_IFACE_MAP[cDigits[0]];
   if(!esimIface) parseWarnings.push(`eSIM/interface digit "${cDigits[0]||'?'}" not recognized (expected 4/5/6/7).`);
-  if(cDigits[1] !== '2') parseWarnings.push(`Memory digit "${cDigits[1]||'?'}" isn't the usual "2" (2GB/32GB) — meaning unconfirmed.`);
+  const memoryDigit = cDigits[1];
+  const memoryLabel = MEMORY_LABELS[memoryDigit];
+  if(!memoryLabel) parseWarnings.push(`Memory digit "${memoryDigit||'?'}" isn't 1 or 2 — only those are confirmed for UX700-4G.`);
 
   const esim = esimIface ? esimIface.esim : null;
   const iface = esimIface ? esimIface.iface : null;
@@ -869,11 +887,12 @@ function decodeRun(){
     parseWarnings.push('Country code EUL is defined specifically for RS485 — decoded interface doesn\'t match.');
   }
 
-  const built = buildFromParams(os, esim, iface, countryInfo.radioModule, countryInfo.color, countryInfo.stencil, currentDecRev);
+  const built = buildFromParams(os, esim, iface, memoryDigit, countryInfo.radioModule, countryInfo.color, countryInfo.stencil, currentDecRev);
   const warnings = parseWarnings.concat(built.warnings);
 
   document.getElementById('decOutModel').textContent = built.model ? `UX700-4G-${built.model}` : 'Undefined';
   document.getElementById('decOutEsim').textContent = esim || '—';
+  document.getElementById('decOutMemory').textContent = memoryLabel || '—';
   document.getElementById('decOutOs').textContent = os || '—';
   document.getElementById('decOutRegion').textContent = countryInfo.radioModule === 'NA' ? 'US' : (countryInfo.stencil === 'Yes' ? 'UK' : 'EU');
   const housingEl = document.getElementById('decOutHousing');
@@ -929,6 +948,7 @@ const ENCODE_AXES = {
   stencil: ['No','Yes'],
   os: ['Android','Linux'],
   esim: ['.02','.32'],
+  memory: ['1','2'],
   iface: ['RS232','RS485'],
 };
 
@@ -943,15 +963,17 @@ const ALL_ENCODE_COMBOS = (function(){
         if(!countryCodeFor(radioModule, color, stencil)) return;
         ENCODE_AXES.os.forEach(os=>{
           ENCODE_AXES.esim.forEach(esim=>{
-            ENCODE_AXES.iface.forEach(iface=>{
-              combos.push({family:'4G', radioModule, color, stencil, os, esim, iface});
+            ENCODE_AXES.memory.forEach(memory=>{
+              ENCODE_AXES.iface.forEach(iface=>{
+                combos.push({family:'4G', radioModule, color, stencil, os, esim, memory, iface});
+              });
             });
           });
         });
       });
     });
   });
-  // ML combos: 2 fixed SKUs, WiFi-only. Color always Light; no radio/esim/iface/stencil.
+  // ML combos: 2 fixed SKUs, WiFi-only. Color always Light; no radio/esim/iface/stencil/memory.
   Object.keys(ML_MODELS).forEach(mlKey=>{
     combos.push({family:'ML', mlKey, os: ML_MODELS[mlKey].os, color:'Light'});
   });
@@ -972,7 +994,7 @@ function computePnForCombo(c){
   else if(c.esim === '.32' && c.iface === 'RS232') ceDigit = '5';
   else if(c.esim === '.02' && c.iface === 'RS485') ceDigit = '6';
   else if(c.esim === '.32' && c.iface === 'RS485') ceDigit = '7';
-  const codeSeg = ceDigit + '2';
+  const codeSeg = ceDigit + c.memory;
 
   return `M187-${osSeg}-${codeSeg}-${country}-6`;
 }
@@ -1148,6 +1170,7 @@ function applyFormMode(){
   const ml = inMlMode();
   setSelectNA('encRadioModule', ml);
   setSelectNA('encEsim', ml);
+  setSelectNA('encMemory', ml);
   setSelectNA('encIface', ml);
   setOptionsDisabled('encColor', ['Dark'], ml);   // ML is Light only
   if(ml && getEnc('encColor').value !== 'Light') getEnc('encColor').value = 'Light';
@@ -1206,6 +1229,7 @@ function sortMatches(matches, rev){
     stencil: c => c.stencil || 'N/A',
     os: c => c.os,
     esim: c => c.esim || 'N/A',
+    memory: c => c.memory || 'N/A',
     iface: c => c.iface || 'N/A',
     hwid: c => c.family === 'ML' ? computeMlHwidPlain(rev) : computeHwidPlain(c.iface, c.color, c.stencil, rev),
   };
@@ -1235,7 +1259,7 @@ function renderMatchTable(matches){
   updateSortHeaders();
 
   if(!matches.length){
-    body.innerHTML = '<tr><td colspan="9" class="match-empty">No matching SKU — that combination isn\'t defined (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color).</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="match-empty">No matching SKU — that combination isn\'t defined (e.g. Radio Module NA + Navigator Stencil, or Navigator Stencil + Dark Color).</td></tr>';
     return;
   }
 
@@ -1252,6 +1276,7 @@ function renderMatchTable(matches){
         <td>N/A</td>
         <td>${c.os}</td>
         <td>N/A</td>
+        <td>2/32GB</td>
         <td>N/A</td>
         <td class="mono">${computeMlHwidHtml(rev)}</td>
       </tr>`;
@@ -1267,6 +1292,7 @@ function renderMatchTable(matches){
       <td>${c.stencil}</td>
       <td>${c.os}</td>
       <td>${c.esim}</td>
+      <td>${MEMORY_LABELS[c.memory]}</td>
       <td>${c.iface}${flagged ? '<span class="flag-dot" title="Not confirmed to exist as a real SKU">!</span>' : ''}</td>
       <td class="mono">${hwid}</td>
     </tr>`;
@@ -1285,6 +1311,7 @@ function encodeRun(){
     stencil: getEnc('encStencil').value,
     os: getEnc('encOs').value,
     esim: selVal('encEsim'),
+    memory: selVal('encMemory'),
     iface: selVal('encIface'),
   };
 
@@ -1293,12 +1320,12 @@ function encodeRun(){
     if(countryCode && comboCountry(c) !== countryCode) return false;
     if(c.family === 'ML'){
       // ML only has OS + Color axes; any 4G-only axis being set excludes ML.
-      if(f.radioModule || f.esim || f.iface) return false;
+      if(f.radioModule || f.esim || f.memory || f.iface) return false;
       if(f.os && f.os !== c.os) return false;
       if(f.color && f.color !== c.color) return false;
       return true;
     }
-    return ['radioModule','color','stencil','os','esim','iface'].every(k => !f[k] || f[k] === c[k]);
+    return ['radioModule','color','stencil','os','esim','memory','iface'].every(k => !f[k] || f[k] === c[k]);
   });
   renderMatchTable(matches);
 
@@ -1327,7 +1354,7 @@ function encodeRun(){
     return;
   }
 
-  const built = buildFromParams(only.os, only.esim, only.iface, only.radioModule, only.color, only.stencil, rev);
+  const built = buildFromParams(only.os, only.esim, only.iface, only.memory, only.radioModule, only.color, only.stencil, rev);
   const warnings = built.warnings.slice();
   const pn = computePnForCombo(only);
 
